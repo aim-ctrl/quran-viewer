@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import re
+@import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
 
 st.set_page_config(layout="wide", page_title="Quran Viewer", initial_sidebar_state="collapsed")
 
