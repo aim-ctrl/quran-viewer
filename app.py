@@ -160,7 +160,7 @@ if filtered_verses:
         <span style="position: relative; display: inline-block; margin: 0px;">
             <span class="verse-number" style="font-size: 1.0em;">{verse_symbol}</span>
             <span class="verse-number" style="position: absolute; 
-                          top: 55%; 
+                          top: 50%; 
                           left: 50%; 
                           transform: translate(-50%, -50%); 
                           font-size: 0.45em; 
