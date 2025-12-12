@@ -186,7 +186,7 @@ if selected_chapter_name:
                                  left: 50%; 
                                  transform: translate(-50%, -50%); 
                                  font-size: 0.45em; 
-                                 color: #00d; 
+                                 color: #00e1ff; 
                                  font-family: arial;
                                  font-weight: bold;">{current_verse_num}</span>
                 </span>
