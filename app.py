@@ -97,13 +97,13 @@ def fetch_verses(chapter_number):
 
 st.sidebar.title("Settings")
 st.sidebar.markdown("### Appearance")
-text_size = st.sidebar.number_input("Font size (px)", 10, 150, 28, 1)
-line_height = st.sidebar.number_input("Line height", 0.1, 3.5, 1.6, 0.1)
+text_size = st.sidebar.number_input("Font size (px)", 10, 150, 22, 1)
+line_height = st.sidebar.number_input("Line height", 0.1, 3.5, 1.65, 0.05)
 enable_madd_highlight = st.sidebar.checkbox("Highlight 'Madd'", value=True)
-new_line = st.sidebar.checkbox("Verse on new line", value=True)
+new_line = st.sidebar.checkbox("Verse on new line", value=False)
 
 # NYTT: Checkbox för Marginaljustering (Justify)
-justify_text = st.sidebar.checkbox("Justify text", value=False)
+justify_text = st.sidebar.checkbox("Justify text", value=True)
 
 st.sidebar.markdown("### Display Mode")
 display_option = st.sidebar.radio(
