@@ -1,43 +1,38 @@
 import streamlit as st
 import requests
-import streamlit.components.v1 as components
-import re  # Importerar regex-biblioteket för textanalys
+import re
 
-st.set_page_config(layout="wide", page_title="Quran Viewer")
+st.set_page_config(layout="wide", page_title="Quran Viewer", initial_sidebar_state="collapsed")
 
-# --- NY FUNKTION: Identifiera och färga Madd-regler ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+    
+    .quran-text {
+        font-family: 'Amiri', serif !important;
+    }
+    
+    .verse-number {
+        font-family: 'Amiri', serif !important;
+        color: #00e1ff;
+    }
+    
+    .stNumberInput input {
+        text-align: center;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 def highlight_madd_rules(text, color_hex="#FF00FF"):
-    """
-    Letar efter Uthmani 'Maddah'-tecknet (~) (Unicode \u0653) 
-    och färgar bokstaven som bär det samt själva tecknet.
-    """
-    # Regex-förklaring:
-    # ( ... )              = Gruppera det vi vill ersätta
-    # [\u0600-\u06FF]      = Matchar en arabisk bas-bokstav
-    # [\u064B-\u0652\u0670]* = Matchar 0 eller flera andra diakritiska tecken (vokaler, dagger alif etc) som kan finnas emellan
-    # \u0653               = Matchar specifikt Maddah-tecknet (~)
-    
     pattern = r"([\u0600-\u06FF][\u064B-\u0652\u0670]*\u0653)"
-    
-    # Ersätt matchningen med en span som har rätt färg
     replacement = f"<span style='color: {color_hex}; font-weight: bold;'>\\1</span>"
-    
     return re.sub(pattern, replacement, text)
-
-def highlight_text(text, search_term, color_hex):
-    if search_term and color_hex:
-        # Använd regex för exakt matchning av söktermen om det behövs, 
-        # men enkel replace fungerar bra för hela ord/delar.
-        replacement_tag = f"<span style='color: {color_hex}; font-weight: bold;'>{search_term}</span>"
-        return text.replace(search_term, replacement_tag)
-    return text
 
 def format_verse_display(verse_text, display_mode, n_words=1):
     special_chars = ["*", "۞", "۩"]
     for char in special_chars:
         verse_text = verse_text.replace(char, "")
     
-    # Normalisera mellanslag
     verse_text = " ".join(verse_text.split())
     words = verse_text.split()
     
@@ -101,190 +96,98 @@ def fetch_verses(chapter_number):
         return []
 
 st.sidebar.title("Settings")
-
-st.sidebar.markdown("### Highlighting")
-# Checkbox för Madd-regler
+st.sidebar.markdown("### Appearance")
+text_size = st.sidebar.number_input("Font size (px)", 10, 150, 28, 1)
+line_height = st.sidebar.number_input("Line height", 0.1, 3.5, 1.6, 0.1)
 enable_madd_highlight = st.sidebar.checkbox("Highlight 'Madd'", value=True)
+new_line = st.sidebar.checkbox("Verse on new line", value=True)
 
-search_term = st.sidebar.text_input("Custom char/text to highlight:", value="")
-color_hex = st.sidebar.color_picker("Select custom color:", value="#FF0000")
-st.sidebar.markdown("---")
+# NYTT: Checkbox för Marginaljustering (Justify)
+justify_text = st.sidebar.checkbox("Justify text", value=False)
 
 st.sidebar.markdown("### Display Mode")
 display_option = st.sidebar.radio(
-    "How should verses be displayed?",
+    "Mode",
     options=["Full verse", "First N words", "Last word", "First and last word"],
     index=0
 )
 
 num_words_to_show = 1
 if display_option == "First N words":
-    num_words_to_show = st.sidebar.number_input(
-        "Number of words to show:", 
-        min_value=1, 
-        max_value=100, 
-        value=1,
-        step=1
-    )
+    num_words_to_show = st.sidebar.number_input("Words to show", 1, 100, 1)
 
-new_line = st.sidebar.checkbox("Show each verse on a new line", value=True)
-st.sidebar.markdown("---")
-
-st.sidebar.markdown("### Text Appearance")
-text_size = st.sidebar.number_input(
-    "Font size (px)",
-    min_value=10, max_value=150, value=28, step=1
-)
-
-line_height = st.sidebar.number_input(
-    "Line height",
-    min_value=0.1, max_value=3.5, value=1.6, step=0.1
-)
-st.sidebar.markdown("---")
-
-show_snapshot_view = st.sidebar.checkbox("📷 View in 16:9 Snapshot Mode", value=False)
-st.sidebar.markdown("---")
-
-selected_chapter_name = st.sidebar.selectbox("1. Select a Chapter:", chapter_list)
-
-if selected_chapter_name:
-    chapter_num = chapter_data.get(selected_chapter_name)
-    all_verses = fetch_verses(chapter_num)
+with st.expander("📖 Navigation & Selection", expanded=True):
+    selected_chapter_name = st.selectbox("Select Chapter:", chapter_list)
     
-    if all_verses:
-        max_verse = len(all_verses)
-        st.sidebar.markdown(f"**Chapter has {max_verse} verses.**")
-
-        start_verse = st.sidebar.number_input("2. Start Verse:", 1, max_verse, 1)
-        end_verse = st.sidebar.number_input("3. End Verse:", 1, max_verse, max_verse)
-
-        if start_verse > end_verse:
-            st.error("Start verse cannot be greater than end verse.")
-        else:
-            filtered_verses = all_verses[start_verse - 1 : end_verse]
-            current_verse_num = start_verse 
-            all_html_content = ""
-
-            for verse in filtered_verses:
-                # 1. Först formaterar vi texten (klipper ut ord, tar bort specialtecken)
-                processed_verse = format_verse_display(verse, display_option, num_words_to_show)
-                
-                # 2. Sedan applicerar vi Madd-highlighting (Magenta) om valt
-                # Vi gör detta INNAN den vanliga sök-highlightingen för att undvika krockar
-                if enable_madd_highlight:
-                    processed_verse = highlight_madd_rules(processed_verse, "#FF00FF")
-
-                # 3. Sist applicerar vi användarens specifika sök-highlight
-                processed_verse = highlight_text(processed_verse, search_term, color_hex)
-                
-                verse_symbol = "۝"
-                verse_number_html = f"""
-                <span style="position: relative; display: inline-block; margin: 0 5px;">
-                    <span style="font-size: 1.0em; color: #00e1ff;">{verse_symbol}</span>
-                    <span style="position: absolute; 
-                                 top: 50%; 
-                                 left: 50%; 
-                                 transform: translate(-50%, -50%); 
-                                 font-size: 0.45em; 
-                                 color: #00e1ff; 
-                                 font-family: arial;
-                                 font-weight: bold;">{current_verse_num}</span>
-                </span>
-                """
-                
-                verse_html_part = f"{processed_verse} {verse_number_html}"
-
-                if new_line:
-                    all_html_content += f"<p style='margin-bottom: 10px;'>{verse_html_part}</p>"
-                else:
-                    all_html_content += f"{verse_html_part} "
-
-                current_verse_num += 1
+    if selected_chapter_name:
+        chapter_num = chapter_data.get(selected_chapter_name)
+        all_verses = fetch_verses(chapter_num)
+        
+        if all_verses:
+            max_verse = len(all_verses)
             
-            if show_snapshot_view:
-                # HTML-koden för snapshot (samma som tidigare)
-                html_code = f"""
-                <!DOCTYPE html>
-                <html lang="ar" dir="rtl">
-                <head>
-                    <meta charset="UTF-8">
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-                    <style>
-                        body {{
-                            font-family: arial; 
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            background-color: #f0f2f6;
-                            margin: 0px;
-                            padding: 0px;
-                        }}
-                        #capture-container {{
-                            width: 800px;
-                            height: 450px; 
-                            background-color: white;
-                            padding: 15px;
-                            box-sizing: border-box;
-                            border: 4px solid #190991;
-                            text-align: center;
-                            font-size: {text_size}px; 
-                            line-height: {line_height};
-                            overflow-y: auto; 
-                            color: #000000;
-                        }}
-                        #capture-container::-webkit-scrollbar {{
-                            width: 0px;
-                        }}
-                        button {{
-                            margin-top: 20px;
-                            padding: 10px 20px;
-                            background-color: #ff4b4b;
-                            color: white;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 16px;
-                            font-weight: bold;
-                        }}
-                        button:hover {{
-                            background-color: #ff2b2b;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    <div id="capture-container">
-                        {all_html_content}
-                    </div>
-                    <button onclick="takeSnapshot()">💾 Save as JPEG</button>
-                    <script>
-                        function takeSnapshot() {{
-                            const element = document.getElementById('capture-container');
-                            html2canvas(element, {{
-                                scale: 2, 
-                                scrollY: -window.scrollY 
-                            }}).then(canvas => {{
-                                const link = document.createElement('a');
-                                link.download = 'quran_verse_{chapter_num}_{start_verse}-{end_verse}.jpg';
-                                link.href = canvas.toDataURL("image/jpeg", 0.9);
-                                link.click();
-                            }});
-                        }}
-                    </script>
-                </body>
-                </html>
-                """
-                st.info("Click the button below to save the frame as an image.")
-                components.html(html_code, height=600, scrolling=False)
+            col1, col2 = st.columns(2)
+            with col1:
+                start_verse = st.number_input("Start Verse", 1, max_verse, 1)
+            with col2:
+                end_verse = st.number_input("End Verse", 1, max_verse, max_verse)
 
+            if start_verse > end_verse:
+                st.error("Start verse cannot be greater than end verse.")
+                filtered_verses = []
             else:
-                st.markdown(
-                    f"""
-                    <div style='text-align: center; font-size: {text_size}px; direction: rtl; line-height: {line_height};'>
-                        {all_html_content}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
+                filtered_verses = all_verses[start_verse - 1 : end_verse]
+                current_verse_num = start_verse 
+        else:
+            filtered_verses = []
+            st.warning("Could not fetch verses.")
     else:
-        st.warning("Could not fetch verses.")
+        filtered_verses = []
+
+# Logik för textjustering
+# Om man valt "Verse on new line" tvingar vi till 'center'.
+# Annars kollar vi om användaren valt 'Justify text'.
+text_alignment = "center"
+if not new_line and justify_text:
+    text_alignment = "justify"
+
+if filtered_verses:
+    all_html_content = ""
+    for verse in filtered_verses:
+        processed_verse = format_verse_display(verse, display_option, num_words_to_show)
+        
+        if enable_madd_highlight:
+            processed_verse = highlight_madd_rules(processed_verse, "#FF00FF")
+
+        verse_symbol = "۝"
+        
+        verse_number_html = f"""
+        <span style="position: relative; display: inline-block; margin: 0px;">
+            <span class="verse-number" style="font-size: 1.0em;">{verse_symbol}</span>
+            <span class="verse-number" style="position: absolute; 
+                          top: 55%; 
+                          left: 50%; 
+                          transform: translate(-50%, -50%); 
+                          font-size: 0.45em; 
+                          font-weight: bold;">{current_verse_num}</span>
+        </span>
+        """
+        
+        verse_html_part = f"{processed_verse} {verse_number_html}"
+
+        if new_line:
+            all_html_content += f"<p style='margin-bottom: 10px;'>{verse_html_part}</p>"
+        else:
+            all_html_content += f"{verse_html_part} "
+
+        current_verse_num += 1
+    
+    # Uppdaterad st.markdown som använder variabeln 'text_alignment'
+    st.markdown(
+        f"""
+        <div class="quran-text" style='text-align: {text_alignment}; font-size: {text_size}px; direction: rtl; line-height: {line_height}; margin-top: 20px;'>
+            {all_html_content}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
