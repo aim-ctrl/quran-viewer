@@ -9,11 +9,11 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
     
     .quran-text {
-        font-family: 'Amiri', serif !important;
+        font-family: 'Scheherazade New', serif !important;
     }
     
     .verse-number {
-        font-family: 'Amiri', serif !important;
+        font-family: 'Scheherazade New', serif !important;
         color: #00e1ff;
     }
     
