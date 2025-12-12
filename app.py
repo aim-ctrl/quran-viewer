@@ -279,9 +279,9 @@ if selected_chapter_name:
             else:
                 st.markdown(
                     f"""
-                    <div style='text-align: right; font-size: {text_size}px; direction: rtl; line-height: {line_height};'>
-                        {all_html_content}
-                    </div>
+                    # <div style='text-align: right; font-size: {text_size}px; direction: rtl; line-height: {line_height};'>
+                    #     {all_html_content}
+                    # </div>
                     """,
                     unsafe_allow_html=True
                 )
