@@ -180,7 +180,7 @@ if selected_chapter_name:
                 verse_symbol = "۝"
                 verse_number_html = f"""
                 <span style="position: relative; display: inline-block; margin: 0 5px;">
-                    <span style="font-size: 1.0em; color: #d41200;">{verse_symbol}</span>
+                    <span style="font-size: 1.0em; color: #00e1ff;">{verse_symbol}</span>
                     <span style="position: absolute; 
                                  top: 50%; 
                                  left: 50%; 
@@ -279,9 +279,9 @@ if selected_chapter_name:
             else:
                 st.markdown(
                     f"""
-                    # <div style='text-align: right; font-size: {text_size}px; direction: rtl; line-height: {line_height};'>
-                    #     {all_html_content}
-                    # </div>
+                    <div style='text-align: center; font-size: {text_size}px; direction: rtl; line-height: {line_height};'>
+                        {all_html_content}
+                    </div>
                     """,
                     unsafe_allow_html=True
                 )
