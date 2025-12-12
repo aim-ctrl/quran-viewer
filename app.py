@@ -117,7 +117,7 @@ if display_option == "First N words":
     num_words_to_show = st.sidebar.number_input("Words to show", 1, 100, 1)
 
 with st.expander("📖 Navigation & Selection", expanded=True):
-    selected_chapter_name = st.selectbox("Select Chapter:", chapter_list)
+    selected_chapter_name = st.select_slider("Select Chapter:", options=chapter_list)
     
     if selected_chapter_name:
         chapter_num = chapter_data.get(selected_chapter_name)
