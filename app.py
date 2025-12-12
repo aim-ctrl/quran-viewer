@@ -95,8 +95,7 @@ def fetch_verses(chapter_number):
         st.error(f"Could not fetch data from API. Check your connection. Error: {e}")
         return []
 
-st.sidebar.title("Settings")
-st.sidebar.markdown("### Appearance")
+
 text_size = st.sidebar.number_input("Font size (px)", 10, 150, 22, 1)
 line_height = st.sidebar.number_input("Line height", 0.1, 3.5, 1.65, 0.05)
 enable_madd_highlight = st.sidebar.checkbox("Highlight 'Madd'", value=True)
@@ -105,7 +104,6 @@ new_line = st.sidebar.checkbox("Verse on new line", value=False)
 # NYTT: Checkbox för Marginaljustering (Justify)
 justify_text = st.sidebar.checkbox("Justify text", value=True)
 
-st.sidebar.markdown("### Display Mode")
 display_option = st.sidebar.radio(
     "Mode",
     options=["Full verse", "First N words", "Last word", "First and last word"],
@@ -116,7 +114,7 @@ num_words_to_show = 1
 if display_option == "First N words":
     num_words_to_show = st.sidebar.number_input("Words to show", 1, 100, 1)
 
-with st.expander("📖 Navigation & Selection", expanded=True):
+with st.expander("Chapter & Verses", expanded=True):
     selected_chapter_name = st.select_slider("Select Chapter:", options=chapter_list)
     
     if selected_chapter_name:
@@ -144,9 +142,6 @@ with st.expander("📖 Navigation & Selection", expanded=True):
     else:
         filtered_verses = []
 
-# Logik för textjustering
-# Om man valt "Verse on new line" tvingar vi till 'center'.
-# Annars kollar vi om användaren valt 'Justify text'.
 text_alignment = "center"
 if not new_line and justify_text:
     text_alignment = "justify"
@@ -182,7 +177,6 @@ if filtered_verses:
 
         current_verse_num += 1
     
-    # Uppdaterad st.markdown som använder variabeln 'text_alignment'
     st.markdown(
         f"""
         <div class="quran-text" style='text-align: {text_alignment}; font-size: {text_size}px; direction: rtl; line-height: {line_height}; margin-top: 20px;'>
