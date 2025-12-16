@@ -8,11 +8,16 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
 
-    header {
+[data-testid="stToolbar"] {
         visibility: hidden;
+        display: none;
     }
     
-    footer { visibility: hidden; } 
+    /* (Valfritt) Döljer den färgade linjen högst upp */
+    [data-testid="stDecoration"] {
+        visibility: hidden;
+        display: none;
+    }
     
     .block-container {
         padding-top: 1rem !important; /* Standard är ofta runt 6rem */
