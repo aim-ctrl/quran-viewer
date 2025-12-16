@@ -8,7 +8,7 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
 
-[data-testid="stToolbar"] {
+    [data-testid="stToolbar"] {
         visibility: hidden;
         display: none;
     }
