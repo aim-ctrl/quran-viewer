@@ -20,7 +20,7 @@ st.markdown("""
     }
     
     .block-container {
-        padding-top: 1rem !important; /* Standard är ofta runt 6rem */
+        padding-top: 4rem !important; /* Standard är ofta runt 6rem */
         padding-bottom: 1rem !important;
     }
     
