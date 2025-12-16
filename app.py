@@ -21,7 +21,7 @@ st.markdown("""
     
     .block-container {
         padding-top: 4rem !important; /* Standard är ofta runt 6rem */
-        padding-bottom: 1rem !important;
+        padding-bottom: 3rem !important;
     }
     
     .quran-text {
