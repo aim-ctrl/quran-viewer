@@ -167,7 +167,7 @@ verses = fetch_verses(selected_chapter_number)
 
 if verses:
     # CSS for justification
-    justify_style = "text-align: justify;" if justify_text else "text-align: right;"
+    justify_style = "text-align: justify;" if justify_text else "text-align: center;"
     
     # Vi bygger strängen utan onödiga mellanslag/indrag för att inte förvirra Markdown
     container_html = f"<div style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
@@ -187,7 +187,7 @@ if verses:
             processed_text = highlight_madd_rules(processed_text)
             
         # VIKTIGT: Allt på en rad eller utan indrag för att undvika att det tolkas som kodblock
-        verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-number'> ﴾{verse_num}﴿ </span></span>"
+        verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-number'> ﴿{verse_num}﴾ </span></span>"
         
         container_html += verse_html
         
