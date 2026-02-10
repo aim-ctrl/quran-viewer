@@ -109,7 +109,7 @@ text_size = st.sidebar.number_input("Font size (px)", 10, 150, 22, 1)
 line_height = st.sidebar.number_input("Line height", 0.1, 3.5, 1.65, 0.05)
 enable_madd_highlight = st.sidebar.checkbox("Highlight 'Madd'", value=True)
 new_line = st.sidebar.checkbox("Verse on new line", value=False)
-justify_text = st.sidebar.checkbox("Justify text", value=True)
+justify_text = st.sidebar.checkbox("Justify text", value=False)
 
 display_option = st.sidebar.radio(
     "Mode",
