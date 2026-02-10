@@ -2,26 +2,25 @@ import streamlit as st
 import requests
 import re
 
-# --- Konfiguration och Styling ---
+# --- Konfiguration ---
 st.set_page_config(layout="wide", page_title="Quran Viewer", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
-    .block-container { padding-top: 4rem !important; padding-bottom: 3rem !important; }
+    .block-container { padding-top: 2rem !important; }
     .quran-text { font-family: 'Scheherazade New', serif !important; }
     .verse-number { font-family: 'Scheherazade New', serif !important; color: #00e1ff; }
-    .stNumberInput input { text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- Hjälpfunktioner ---
+# --- Logik för Session State (Färgregler) ---
+if 'color_rules' not in st.session_state:
+    st.session_state.color_rules = [] # Lista med dicts: {'range': '1-3', 'color': '#ff0000'}
 
 def parse_verse_range(range_str):
-    """Omvandlar strängar som '1, 3-5' till en lista med heltal [1, 3, 4, 5]"""
     verses = set()
-    if not range_str:
-        return verses
+    if not range_str: return verses
     try:
         parts = range_str.replace(" ", "").split(",")
         for part in parts:
@@ -30,133 +29,103 @@ def parse_verse_range(range_str):
                 verses.update(range(start, end + 1))
             else:
                 verses.add(int(part))
-    except ValueError:
-        pass # Ignorera felaktig formatering
+    except: pass
     return verses
 
+# --- Hjälpfunktioner ---
 def highlight_madd_rules(text, color_hex="#FF00FF"):
     pattern = r"([\u0600-\u06FF][\u064B-\u0652\u0670]*\u0653)"
     replacement = f"<span style='color: {color_hex}; font-weight: bold;'>\\1</span>"
     return re.sub(pattern, replacement, text)
 
 def format_verse_display(verse_text, display_mode, n_words=1):
-    special_chars = ["*", "۞", "۩"]
-    for char in special_chars:
-        verse_text = verse_text.replace(char, "")
-    verse_text = " ".join(verse_text.split())
+    verse_text = re.sub(r"[\*|۞|۩]", "", verse_text)
     words = verse_text.split()
     if not words: return ""
-
-    if display_mode == "Full verse": return verse_text
+    if display_mode == "Full verse": return " ".join(words)
     elif display_mode == "First N words": return " ".join(words[:n_words])
     elif display_mode == "Last word": return words[-1]
     elif display_mode == "First and last word":
         return f"{words[0]} - {words[-1]}" if len(words) >= 2 else words[0]
-    return verse_text
+    return " ".join(words)
 
 @st.cache_data
 def fetch_verses(chapter_number):
-    base_url = "https://api.quran.com/api/v4/verses/by_chapter/"
-    url = f"{base_url}{chapter_number}?language=en&words=false&fields=text_uthmani&per_page=1000"
+    url = f"https://api.quran.com/api/v4/verses/by_chapter/{chapter_number}?language=en&words=false&fields=text_uthmani&per_page=1000"
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        return [v['text_uthmani'] for v in data['verses']]
-    except Exception as e:
-        st.error(f"Error: {e}")
-        return []
+        r = requests.get(url)
+        return [v['text_uthmani'] for v in r.json()['verses']]
+    except: return []
 
-# --- Sidomeny / Kontroller ---
-st.sidebar.header("Display Settings")
-text_size = st.sidebar.number_input("Font size (px)", 10, 150, 22, 1)
-line_height = st.sidebar.number_input("Line height", 0.1, 3.5, 1.65, 0.05)
-enable_madd_highlight = st.sidebar.checkbox("Highlight 'Madd'", value=True)
-new_line = st.sidebar.checkbox("Verse on new line", value=False)
-justify_text = st.sidebar.checkbox("Justify text", value=True)
+# --- Sidomeny ---
+st.sidebar.header("Inställningar")
+text_size = st.sidebar.number_input("Textstorlek", 10, 150, 28)
+line_height = st.sidebar.number_input("Radavstånd", 0.5, 4.0, 2.0)
+new_line = st.sidebar.checkbox("Ny rad per vers", value=False)
+enable_madd = st.sidebar.checkbox("Visa Madd", value=True)
 
 st.sidebar.markdown("---")
-st.sidebar.header("Custom Verse Coloring")
-# Nytt: Inmatning för vilka verser som ska färgas
-target_verses_input = st.sidebar.text_input("Verse(s) to color (e.g. 1, 3-5)", "")
-highlight_color = st.sidebar.color_picker("Pick a color", "#FFD700") # Standard Guld
+st.sidebar.subheader("Färgregler")
 
-target_verse_list = parse_verse_range(target_verses_input)
+# Knappar för att hantera regler
+col_btn1, col_btn2 = st.sidebar.columns(2)
+if col_btn1.button("Lägg till färg"):
+    st.session_state.color_rules.append({'range': '', 'color': '#FFD700'})
+if col_btn2.button("Rensa alla") and st.session_state.color_rules:
+    st.session_state.color_rules = []
 
-display_option = st.sidebar.radio(
-    "Mode", options=["Full verse", "First N words", "Last word", "First and last word"], index=0
-)
+# Visa inmatningsfält för varje regel
+active_rules = []
+for i, rule in enumerate(st.session_state.color_rules):
+    with st.sidebar.expander(f"Regel {i+1}", expanded=True):
+        r_range = st.text_input(f"Intervall (t.ex. 1-5, 8)", value=rule['range'], key=f"range_{i}")
+        r_color = st.color_picker(f"Färg", value=rule['color'], key=f"color_{i}")
+        st.session_state.color_rules[i] = {'range': r_range, 'color': r_color}
+        if r_range:
+            active_rules.append({'verses': parse_verse_range(r_range), 'color': r_color})
 
-num_words_to_show = 1
-if display_option == "First N words":
-    num_words_to_show = st.sidebar.number_input("Words to show", 1, 100, 1)
+# --- Huvudvy ---
+chapter_data = {"1. Al-Fatiha": 1, "2. Al-Baqarah": 2, "18. Al-Kahf": 18, "36. Ya-Sin": 36} # Fortsätt listan...
+selected_chapter = st.select_slider("Välj Surah", options=list(chapter_data.keys()))
+chapter_num = chapter_data[selected_chapter]
+all_verses = fetch_verses(chapter_num)
 
-# --- Huvudinnehåll ---
-chapter_data = { "1. Al-Fatiha": 1, "2. Al-Baqarah": 2, "114. An-Nas": 114 } # (Håll listan komplett i din kod)
-# ... (Lägg till alla kapitel här som i din originalkod)
-
-with st.expander("Chapter & Verses", expanded=True):
-    chapter_list = ["1. Al-Fatiha", "2. Al-Baqarah", "18. Al-Kahf", "36. Ya-Sin"] # Exempel, använd din fulla lista
-    selected_chapter_name = st.selectbox("Select Chapter:", options=chapter_list)
+if all_verses:
+    max_v = len(all_verses)
+    v_range = st.slider("Visa verser", 1, max_v, (1, max_v if max_v < 10 else 10))
+    start_v, end_v = v_range
     
-    if selected_chapter_name:
-        # Extrahera nummer från strängen manuellt om chapter_data saknas
-        chapter_num = int(selected_chapter_name.split(".")[0])
-        all_verses = fetch_verses(chapter_num)
+    display_mode = st.selectbox("Visningsläge", ["Full verse", "First N words", "Last word", "First and last word"])
+    
+    # Rendering
+    all_html = ""
+    for idx, text in enumerate(all_verses[start_v-1:end_v], start=start_v):
+        processed = format_verse_display(text, display_mode)
+        if enable_madd:
+            processed = highlight_madd_rules(processed)
         
-        if all_verses:
-            max_verse = len(all_verses)
-            col1, col2 = st.columns(2)
-            with col1: start_verse = st.number_input("Start Verse", 1, max_verse, 1)
-            with col2: end_verse = st.number_input("End Verse", 1, max_verse, max_verse)
-
-            if start_verse > end_verse:
-                st.error("Start verse cannot be greater than end verse.")
-                filtered_verses = []
-            else:
-                filtered_verses = all_verses[start_verse - 1 : end_verse]
-                current_verse_num = start_verse 
-        else:
-            filtered_verses = []
-
-# --- Rendering ---
-text_alignment = "justify" if (not new_line and justify_text) else "center"
-
-if filtered_verses:
-    all_html_content = ""
-    for verse in filtered_verses:
-        processed_verse = format_verse_display(verse, display_option, num_words_to_show)
+        # Kolla färgregler (senast tillagda regel har företräde)
+        applied_color = ""
+        for rule in active_rules:
+            if idx in rule['verses']:
+                applied_color = f"color: {rule['color']}; font-weight: bold;"
         
-        if enable_madd_highlight:
-            processed_verse = highlight_madd_rules(processed_verse, "#FF00FF")
-
-        # LOGIK FÖR ANPASSAD FÄRG
-        # Vi kollar om det aktuella versnumret finns i vår "target_verse_list"
-        current_style = ""
-        if current_verse_num in target_verse_list:
-            current_style = f"color: {highlight_color}; font-weight: bold;"
-
-        verse_symbol = "۝"
-        verse_number_html = f"""
-        <span style="position: relative; display: inline-block; margin: 0px; color: #00e1ff;">
-            <span class="verse-number" style="font-size: 1.0em;">{verse_symbol}</span>
-            <span class="verse-number" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.45em; font-weight: bold;">{current_verse_num}</span>
+        verse_num_html = f"""
+        <span style="position: relative; display: inline-block; direction: ltr;">
+            <span class="verse-number" style="font-size: 0.9em;">۝</span>
+            <span class="verse-number" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.4em; font-weight: bold;">{idx}</span>
         </span>
         """
         
-        # Applicera färgen på texten om den är vald
-        verse_html_part = f"<span style='{current_style}'>{processed_verse}</span> {verse_number_html}"
-
+        content = f"<span style='{applied_color}'>{processed}</span> {verse_num_html}"
+        
         if new_line:
-            all_html_content += f"<p style='margin-bottom: 10px;'>{verse_html_part}</p>"
+            all_html += f"<p style='margin-bottom: 15px;'>{content}</p>"
         else:
-            all_html_content += f"{verse_html_part} "
+            all_html += f" {content} "
 
-        current_verse_num += 1
-    
-    st.markdown(
-        f"""<div class="quran-text" style='text-align: {text_alignment}; font-size: {text_size}px; direction: rtl; line-height: {line_height}; margin-top: 20px;'>
-            {all_html_content}
-        </div>""",
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+        <div class="quran-text" style="text-align: justify; font-size: {text_size}px; direction: rtl; line-height: {line_height};">
+            {all_html}
+        </div>
+    """, unsafe_allow_html=True)
