@@ -169,6 +169,7 @@ if verses:
     # CSS for justification
     justify_style = "text-align: justify;" if justify_text else "text-align: right;"
     
+    # Vi bygger strängen utan onödiga mellanslag/indrag för att inte förvirra Markdown
     container_html = f"<div style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
     
     for idx, verse_text in enumerate(verses):
@@ -179,21 +180,14 @@ if verses:
         for r in st.session_state.highlight_ranges:
             if r['start'] <= verse_num <= r['end']:
                 current_text_color = r['color']
-                # We can choose to break here if we only want the first match, 
-                # or continue if we want the last match to override.
-                # Currently allowing overlap implies last defined wins if overlaps exist.
         
         processed_text = format_verse_display(verse_text, display_option, num_words_to_show)
         
         if enable_madd_highlight:
             processed_text = highlight_madd_rules(processed_text)
             
-        verse_html = f"""
-        <span style='color: {current_text_color};'>
-            {processed_text} 
-            <span class='verse-number'> ﴾{verse_num}﴿ </span>
-        </span>
-        """
+        # VIKTIGT: Allt på en rad eller utan indrag för att undvika att det tolkas som kodblock
+        verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-number'> ﴾{verse_num}﴿ </span></span>"
         
         container_html += verse_html
         
