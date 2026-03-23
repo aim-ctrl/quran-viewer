@@ -21,7 +21,6 @@ st.markdown("""
         font-family: 'KFGQPC', Arial, sans-serif !important;
     }
     
-    /* NYTT: Snodde verse-symbol från första appen! */
     .verse-symbol {
         font-family: 'KFGQPC', Arial, sans-serif !important;
         color: #0394fc; 
@@ -34,7 +33,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# NYTT: Funktionen för att omvandla vanliga siffror till arabiska siffror
 def to_arabic_digits(num):
     western_to_arabic = str.maketrans('0123456789', '٠١٢٣٤٥٦٧٨٩')
     return str(num).translate(western_to_arabic)
@@ -133,8 +131,25 @@ def fetch_verses(chapter_number):
 
 # --- Sidebar Configuration ---
 
-selected_chapter_name = st.sidebar.selectbox("Select Surah", chapter_list)
+selected_chapter_name = st.sidebar.selectbox("Välj Surah", chapter_list)
 selected_chapter_number = chapter_data[selected_chapter_name]
+
+# NYTT: Vi hämtar verserna tidigt så vi vet hur många som finns i kapitlet!
+verses = fetch_verses(selected_chapter_number)
+total_verses = len(verses) if verses else 1
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### Visa Versintervall")
+st.sidebar.write(f"*(Detta kapitel har {total_verses} verser)*")
+
+# NYTT: Inmatning för start- och slutvers (dynamiskt begränsade till kapitlets längd)
+col_disp1, col_disp2 = st.sidebar.columns(2)
+with col_disp1:
+    display_start = st.number_input("Visa från vers", min_value=1, max_value=total_verses, value=1, key="disp_start")
+with col_disp2:
+    display_end = st.number_input("Visa till vers", min_value=1, max_value=total_verses, value=min(5, total_verses), key="disp_end")
+
+st.sidebar.markdown("---")
 
 text_size = st.sidebar.number_input("Font size (px)", 10, 150, 22, 1)
 line_height = st.sidebar.number_input("Line height", 0.1, 3.5, 1.65, 0.05)
@@ -160,9 +175,9 @@ if 'highlight_ranges' not in st.session_state:
 
 col1, col2 = st.sidebar.columns(2)
 with col1:
-    range_start = st.number_input("Från vers", min_value=1, value=1, step=1)
+    range_start = st.number_input("Färglägg från vers", min_value=1, value=1, step=1)
 with col2:
-    range_end = st.number_input("Till vers", min_value=1, value=5, step=1)
+    range_end = st.number_input("Färglägg till vers", min_value=1, value=5, step=1)
 
 range_color = st.sidebar.color_picker("Välj färg", "#FFD700")
 
@@ -191,35 +206,37 @@ if st.session_state.highlight_ranges:
 
 # --- Main Rendering Logic ---
 
-verses = fetch_verses(selected_chapter_number)
-
 if verses:
-    justify_style = "text-align: justify;" if justify_text else "text-align: center;"
-    
-    container_html = f"<div class='quran-text' style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
-    
-    for idx, verse_text in enumerate(verses):
-        verse_num = idx + 1
+    if display_start > display_end:
+        st.error("Start-versen måste vara mindre än eller lika med slut-versen.")
+    else:
+        justify_style = "text-align: justify;" if justify_text else "text-align: center;"
         
-        current_text_color = "inherit" 
-        for r in st.session_state.highlight_ranges:
-            if r['start'] <= verse_num <= r['end']:
-                current_text_color = r['color']
+        container_html = f"<div class='quran-text' style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
         
-        processed_text = format_verse_display(verse_text, display_option, num_words_to_show)
+        # NYTT: Vi loopar bara igenom det intervall användaren har valt
+        for verse_num in range(display_start, display_end + 1):
+            if verse_num - 1 < len(verses):
+                verse_text = verses[verse_num - 1]
+                
+                current_text_color = "inherit" 
+                for r in st.session_state.highlight_ranges:
+                    if r['start'] <= verse_num <= r['end']:
+                        current_text_color = r['color']
+                
+                processed_text = format_verse_display(verse_text, display_option, num_words_to_show)
+                
+                if enable_madd_highlight:
+                    processed_text = highlight_madd_rules(processed_text)
+                    
+                arabic_num = to_arabic_digits(verse_num)
+                verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-symbol'>{arabic_num}</span></span> "
+                
+                container_html += verse_html
+                
+                if new_line:
+                    container_html += "<br>"
+                    
+        container_html += "</div>"
         
-        if enable_madd_highlight:
-            processed_text = highlight_madd_rules(processed_text)
-            
-        # NYTT: Nu använder vi vår konverterade siffra och verse-symbol-klassen!
-        arabic_num = to_arabic_digits(verse_num)
-        verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-symbol'>{arabic_num}</span></span> "
-        
-        container_html += verse_html
-        
-        if new_line:
-            container_html += "<br>"
-            
-    container_html += "</div>"
-    
-    st.markdown(container_html, unsafe_allow_html=True)
+        st.markdown(container_html, unsafe_allow_html=True)
