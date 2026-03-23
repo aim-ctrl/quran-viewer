@@ -34,12 +34,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def highlight_madd_rules(text, color_hex="#FF00FF"):
-    pattern = r"([\u0600-\u06FF][\u064B-\u0652\u0670]*\u0653)"
+    # NYTT: Uppdaterat regex-mönster som letar efter både \u0653 (standard) och \u06E4 (Hafs)
+    pattern = r"([\u0600-\u06FF][\u064B-\u0652\u0670]*[\u0653\u06E4])"
     replacement = f"<span style='color: {color_hex}; font-weight: bold;'>\\1</span>"
     return re.sub(pattern, replacement, text)
 
 def format_verse_display(verse_text, display_mode, n_words=1):
-    # Rensar eventuella osynliga bindetecken för säkerhets skull
     special_chars = ["*", "۞", "۩", "◌", "\u200c", "\u200d"]
     for char in special_chars:
         verse_text = verse_text.replace(char, "")
@@ -92,7 +92,7 @@ chapter_data = {
 
 chapter_list = list(chapter_data.keys())
 
-# --- 2. NYTT: Vi använder alquran.cloud API för perfekt textkompatibilitet ---
+# --- 2. Datahämtning ---
 @st.cache_data
 def fetch_verses(chapter_number):
     url = f"http://api.alquran.cloud/v1/surah/{chapter_number}/quran-uthmani-hafs"
@@ -147,11 +147,9 @@ if display_option == "First N words":
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Färglägg Versintervall")
 
-# Initialize session state for ranges
 if 'highlight_ranges' not in st.session_state:
     st.session_state.highlight_ranges = []
 
-# Input for new range
 col1, col2 = st.sidebar.columns(2)
 with col1:
     range_start = st.number_input("Från vers", min_value=1, value=1, step=1)
@@ -167,7 +165,6 @@ if st.sidebar.button("Lägg till intervall"):
         'color': range_color
     })
 
-# Display active ranges with remove option
 if st.session_state.highlight_ranges:
     st.sidebar.markdown("#### Aktiva intervall:")
     ranges_to_keep = []
@@ -189,7 +186,6 @@ if st.session_state.highlight_ranges:
 verses = fetch_verses(selected_chapter_number)
 
 if verses:
-    # CSS for justification
     justify_style = "text-align: justify;" if justify_text else "text-align: center;"
     
     container_html = f"<div class='quran-text' style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
@@ -197,8 +193,7 @@ if verses:
     for idx, verse_text in enumerate(verses):
         verse_num = idx + 1
         
-        # Determine text color based on intervals
-        current_text_color = "inherit" # Default
+        current_text_color = "inherit" 
         for r in st.session_state.highlight_ranges:
             if r['start'] <= verse_num <= r['end']:
                 current_text_color = r['color']
