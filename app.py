@@ -34,7 +34,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def highlight_madd_rules(text, color_hex="#FF00FF"):
-    # NYTT: Uppdaterat regex-mönster som letar efter både \u0653 (standard) och \u06E4 (Hafs)
     pattern = r"([\u0600-\u06FF][\u064B-\u0652\u0670]*[\u0653\u06E4])"
     replacement = f"<span style='color: {color_hex}; font-weight: bold;'>\\1</span>"
     return re.sub(pattern, replacement, text)
@@ -43,6 +42,11 @@ def format_verse_display(verse_text, display_mode, n_words=1):
     special_chars = ["*", "۞", "۩", "◌", "\u200c", "\u200d"]
     for char in special_chars:
         verse_text = verse_text.replace(char, "")
+        
+    # Säkerhetsrensning för Waqf-tecken så att vi aldrig får spökcirklar
+    waqf_marks = ['ۖ', 'ۗ', 'ۘ', 'ۙ', 'ۚ', 'ۛ', 'ۜ']
+    for mark in waqf_marks:
+        verse_text = verse_text.replace(" " + mark, mark)
         
     verse_text = " ".join(verse_text.split())
     words = verse_text.split()
@@ -92,10 +96,10 @@ chapter_data = {
 
 chapter_list = list(chapter_data.keys())
 
-# --- 2. Datahämtning ---
+# --- 2. Datahämtning (Ändrad till 'quran-uthmani' för att få tillbaka Madd-tecken) ---
 @st.cache_data
 def fetch_verses(chapter_number):
-    url = f"http://api.alquran.cloud/v1/surah/{chapter_number}/quran-uthmani-hafs"
+    url = f"http://api.alquran.cloud/v1/surah/{chapter_number}/quran-uthmani"
     
     try:
         response = requests.get(url)
