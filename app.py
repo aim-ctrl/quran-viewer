@@ -34,7 +34,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def highlight_madd_rules(text, color_hex="#FF00FF"):
-    pattern = r"([\u0600-\u06FF][\u064B-\u0652\u0670]*[\u0653\u06E4])"
+    # NYTT: Bredare sökning som hittar färdigbakade Madd-bokstäver (0622) och tillåter fler mellanliggande vokaler
+    pattern = r"([\u0600-\u06FF][\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]*[\u0653\u06E4]|\u0622[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]*)"
     replacement = f"<span style='color: {color_hex}; font-weight: bold;'>\\1</span>"
     return re.sub(pattern, replacement, text)
 
@@ -43,7 +44,6 @@ def format_verse_display(verse_text, display_mode, n_words=1):
     for char in special_chars:
         verse_text = verse_text.replace(char, "")
         
-    # Säkerhetsrensning för Waqf-tecken så att vi aldrig får spökcirklar
     waqf_marks = ['ۖ', 'ۗ', 'ۘ', 'ۙ', 'ۚ', 'ۛ', 'ۜ']
     for mark in waqf_marks:
         verse_text = verse_text.replace(" " + mark, mark)
@@ -96,10 +96,10 @@ chapter_data = {
 
 chapter_list = list(chapter_data.keys())
 
-# --- 2. Datahämtning (Ändrad till 'quran-uthmani' för att få tillbaka Madd-tecken) ---
+# --- 2. Datahämtning (Tillbaka till Hafs!) ---
 @st.cache_data
 def fetch_verses(chapter_number):
-    url = f"http://api.alquran.cloud/v1/surah/{chapter_number}/quran-uthmani"
+    url = f"http://api.alquran.cloud/v1/surah/{chapter_number}/quran-uthmani-hafs"
     
     try:
         response = requests.get(url)
@@ -110,7 +110,6 @@ def fetch_verses(chapter_number):
         for ayah in data['data']['ayahs']:
             clean_text = ayah['text']
             
-            # Rensar Bismillah från vers 1 (utom Sura 1 och 9)
             if ayah['numberInSurah'] == 1 and chapter_number not in [1, 9]:
                 if "بِس" in clean_text[:10] or "بسم" in clean_text[:10]:
                     parts = clean_text.split(" ", 4)
