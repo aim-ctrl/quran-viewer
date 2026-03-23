@@ -4,7 +4,7 @@ import re
 
 st.set_page_config(layout="wide", page_title="Quran Viewer", initial_sidebar_state="collapsed")
 
-# --- 1. Uppdaterad Styling och Typsnitt ---
+# --- 1. Styling och Typsnitt ---
 st.markdown("""
     <style>
     @font-face {
@@ -39,16 +39,11 @@ def highlight_madd_rules(text, color_hex="#FF00FF"):
     return re.sub(pattern, replacement, text)
 
 def format_verse_display(verse_text, display_mode, n_words=1):
-    # NYTT: Lade till '◌' (den streckade cirkeln) och nollbreddstecken för att städa koden
+    # Rensar eventuella osynliga bindetecken för säkerhets skull
     special_chars = ["*", "۞", "۩", "◌", "\u200c", "\u200d"]
     for char in special_chars:
         verse_text = verse_text.replace(char, "")
         
-    # NYTT: Letar upp Waqf-tecken och tar bort mellanslaget framför dem så de fäster på ordet
-    waqf_marks = ['ۖ', 'ۗ', 'ۘ', 'ۙ', 'ۚ', 'ۛ', 'ۜ']
-    for mark in waqf_marks:
-        verse_text = verse_text.replace(" " + mark, mark)
-    
     verse_text = " ".join(verse_text.split())
     words = verse_text.split()
     
@@ -97,18 +92,35 @@ chapter_data = {
 
 chapter_list = list(chapter_data.keys())
 
+# --- 2. NYTT: Vi använder alquran.cloud API för perfekt textkompatibilitet ---
 @st.cache_data
 def fetch_verses(chapter_number):
-    base_url = "https://api.quran.com/api/v4/verses/by_chapter/"
-    url = f"{base_url}{chapter_number}?language=en&words=false&fields=text_uthmani&per_page=1000"
+    url = f"http://api.alquran.cloud/v1/surah/{chapter_number}/quran-uthmani-hafs"
     
     try:
         response = requests.get(url)
         response.raise_for_status() 
         data = response.json()
-        return [v['text_uthmani'] for v in data['verses']]
+        verses = []
+        
+        for ayah in data['data']['ayahs']:
+            clean_text = ayah['text']
+            
+            # Rensar Bismillah från vers 1 (utom Sura 1 och 9)
+            if ayah['numberInSurah'] == 1 and chapter_number not in [1, 9]:
+                if "بِس" in clean_text[:10] or "بسم" in clean_text[:10]:
+                    parts = clean_text.split(" ", 4)
+                    if len(parts) == 5:
+                        clean_text = parts[-1]
+                    else:
+                        clean_text = clean_text.replace("بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِيمِ ", "")
+                        
+            verses.append(clean_text)
+            
+        return verses
+        
     except requests.exceptions.RequestException as e:
-        st.error(f"Could not fetch data from API. Check your connection. Error: {e}")
+        st.error(f"Kunde inte hämta data från API. Kontrollera din anslutning. Fel: {e}")
         return []
 
 # --- Sidebar Configuration ---
