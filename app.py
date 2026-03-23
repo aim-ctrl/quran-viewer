@@ -21,10 +21,11 @@ st.markdown("""
         font-family: 'KFGQPC', Arial, sans-serif !important;
     }
     
-    .verse-number {
+    /* NYTT: Snodde verse-symbol från första appen! */
+    .verse-symbol {
         font-family: 'KFGQPC', Arial, sans-serif !important;
-        color: #00e1ff;
-        font-size: 12px
+        color: #001e8c; 
+        margin: 0 0px; 
     }
     
     .stNumberInput input {
@@ -33,8 +34,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# NYTT: Funktionen för att omvandla vanliga siffror till arabiska siffror
+def to_arabic_digits(num):
+    western_to_arabic = str.maketrans('0123456789', '٠١٢٣٤٥٦٧٨٩')
+    return str(num).translate(western_to_arabic)
+
 def highlight_madd_rules(text, color_hex="#FF00FF"):
-    # NYTT: Bredare sökning som hittar färdigbakade Madd-bokstäver (0622) och tillåter fler mellanliggande vokaler
     pattern = r"([\u0600-\u06FF][\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]*[\u0653\u06E4]|\u0622[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]*)"
     replacement = f"<span style='color: {color_hex}; font-weight: bold;'>\\1</span>"
     return re.sub(pattern, replacement, text)
@@ -96,7 +101,7 @@ chapter_data = {
 
 chapter_list = list(chapter_data.keys())
 
-# --- 2. Datahämtning (Tillbaka till Hafs!) ---
+# --- 2. Datahämtning ---
 @st.cache_data
 def fetch_verses(chapter_number):
     url = f"http://api.alquran.cloud/v1/surah/{chapter_number}/quran-uthmani-hafs"
@@ -206,7 +211,9 @@ if verses:
         if enable_madd_highlight:
             processed_text = highlight_madd_rules(processed_text)
             
-        verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-number'> ﴿{verse_num}﴾ </span></span>"
+        # NYTT: Nu använder vi vår konverterade siffra och verse-symbol-klassen!
+        arabic_num = to_arabic_digits(verse_num)
+        verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-symbol'>{arabic_num}</span></span>"
         
         container_html += verse_html
         
