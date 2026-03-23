@@ -4,9 +4,13 @@ import re
 
 st.set_page_config(layout="wide", page_title="Quran Viewer", initial_sidebar_state="collapsed")
 
+# --- 1. Uppdaterad Styling och Typsnitt ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
+    @font-face {
+        font-family: 'KFGQPC';
+        src: url('https://cdn.jsdelivr.net/npm/kfgqpc-uthmanic-script-hafs-regular@1.0.0/arabic.otf') format('opentype');
+    }
 
     .block-container {
         padding-top: 4rem !important;
@@ -14,11 +18,11 @@ st.markdown("""
     }
     
     .quran-text {
-        font-family: 'Scheherazade New', serif !important;
+        font-family: 'KFGQPC', Arial, sans-serif !important;
     }
     
     .verse-number {
-        font-family: 'Scheherazade New', serif !important;
+        font-family: 'KFGQPC', Arial, sans-serif !important;
         color: #00e1ff;
         font-size: 12px
     }
@@ -170,8 +174,8 @@ if verses:
     # CSS for justification
     justify_style = "text-align: justify;" if justify_text else "text-align: center;"
     
-    # Vi bygger strängen utan onödiga mellanslag/indrag för att inte förvirra Markdown
-    container_html = f"<div style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
+    # Lade till klassen 'quran-text' i diven nedanför för att typsnittet ska appliceras
+    container_html = f"<div class='quran-text' style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
     
     for idx, verse_text in enumerate(verses):
         verse_num = idx + 1
