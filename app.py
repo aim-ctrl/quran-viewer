@@ -213,7 +213,7 @@ if verses:
             
         # NYTT: Nu använder vi vår konverterade siffra och verse-symbol-klassen!
         arabic_num = to_arabic_digits(verse_num)
-        verse_html = f"<span style='color: {current_text_color};'>{processed_text}<span class='verse-symbol'>{arabic_num}</span></span> "
+        verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-symbol'>{arabic_num}</span></span> "
         
         container_html += verse_html
         
