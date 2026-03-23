@@ -24,7 +24,7 @@ st.markdown("""
     /* NYTT: Snodde verse-symbol från första appen! */
     .verse-symbol {
         font-family: 'KFGQPC', Arial, sans-serif !important;
-        color: #001e8c; 
+        color: #0394fc; 
         margin: 0 0px; 
     }
     
