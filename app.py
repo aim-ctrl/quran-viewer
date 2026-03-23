@@ -39,9 +39,15 @@ def highlight_madd_rules(text, color_hex="#FF00FF"):
     return re.sub(pattern, replacement, text)
 
 def format_verse_display(verse_text, display_mode, n_words=1):
-    special_chars = ["*", "۞", "۩"]
+    # NYTT: Lade till '◌' (den streckade cirkeln) och nollbreddstecken för att städa koden
+    special_chars = ["*", "۞", "۩", "◌", "\u200c", "\u200d"]
     for char in special_chars:
         verse_text = verse_text.replace(char, "")
+        
+    # NYTT: Letar upp Waqf-tecken och tar bort mellanslaget framför dem så de fäster på ordet
+    waqf_marks = ['ۖ', 'ۗ', 'ۘ', 'ۙ', 'ۚ', 'ۛ', 'ۜ']
+    for mark in waqf_marks:
+        verse_text = verse_text.replace(" " + mark, mark)
     
     verse_text = " ".join(verse_text.split())
     words = verse_text.split()
@@ -174,7 +180,6 @@ if verses:
     # CSS for justification
     justify_style = "text-align: justify;" if justify_text else "text-align: center;"
     
-    # Lade till klassen 'quran-text' i diven nedanför för att typsnittet ska appliceras
     container_html = f"<div class='quran-text' style='direction: rtl; {justify_style} font-size: {text_size}px; line-height: {line_height};'>"
     
     for idx, verse_text in enumerate(verses):
@@ -191,7 +196,6 @@ if verses:
         if enable_madd_highlight:
             processed_text = highlight_madd_rules(processed_text)
             
-        # VIKTIGT: Allt på en rad eller utan indrag för att undvika att det tolkas som kodblock
         verse_html = f"<span style='color: {current_text_color};'>{processed_text} <span class='verse-number'> ﴿{verse_num}﴾ </span></span>"
         
         container_html += verse_html
